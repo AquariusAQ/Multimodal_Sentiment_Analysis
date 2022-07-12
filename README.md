@@ -58,7 +58,11 @@ pip install -r requirements.txt
     |-- image_beit.py # 使用 BEiT 提取图像特征的子模型
     |-- utils.py # 一些辅助性的子模型
 |-- pre-trained-model # 预训练模型文件夹，如 BERT 等
-|-- output # 输出文件夹，包括训练好的模型参数、预测结果等
+|-- output # 输出文件夹，每一个子文件夹是一次训练的结果，包括训练好的模型参数等
+    |-- Best-model.pth # 验证集 Acc 最高的模型参数（无验证集时为训练结束时的参数）
+    |-- opt.json # 训练命令中带的超参
+    |-- train_result.json # 每轮训练的训练集 Loss，Acc 和验证集 Acc（如果有）
+    |-- test_with_pred_label.txt # 该模型在测试测试集上的预测结果（如果运行了 test.py）
 |-- train.py # 模型训练脚本
 |-- test.py # 模型测试脚本
 |-- dataset.py # 读取数据集的脚本
