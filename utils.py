@@ -4,7 +4,7 @@ import numpy as np
 np.random.seed(2022)
 torch.manual_seed(2022)
 
-def check_accuracy(loader, model:torch.nn.Module, device:str):
+def check_accuracy(opt,loader, model:torch.nn.Module, device:str):
     num_correct = 0
     num_samples = 0
     model.eval()

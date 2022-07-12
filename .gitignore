@@ -1,8 +1,14 @@
 # pre-trained-model
-/pre-trained-model
+/pre-trained-model/*
 
 # backup models
 /backup
 
 # fine-tune-model
-/output
+/output/*
+
+# just for test
+temp.py
+
+# run all 
+run.bat

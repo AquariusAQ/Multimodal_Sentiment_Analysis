@@ -1,5 +1,6 @@
 import os
 import time
+import json
 
 import torch
 import torch.optim as optim
@@ -50,6 +51,15 @@ parser.add_argument('--max_length', type=int, default=144, help='max length of t
 parser.add_argument('--cuda', action='store_true', help='use GPU computation')
 opt = parser.parse_args()
 print(opt)
+
+# save opt
+time_str = datetime.datetime.now().strftime(r'%Y-%m-%d-%H-%M-%S')
+if opt.save_model:
+    output_path = os.path.join("./output/", time_str)
+    os.makedirs(output_path)
+    with open(os.path.join(output_path, "opt.json"), 'wt') as f:
+        json.dump(vars(opt), f, indent=4)
+        f.close()
 
 # chech mask
 assert not (opt.mask_image and  opt.mask_text), "Text and image cannot be masked at the same time!"
@@ -110,22 +120,25 @@ NUM_ALL = train_dataset.__len__()
 NUM_VALID = int(NUM_ALL * opt.valid_ratio)
 NUM_TRAIN = NUM_ALL - NUM_VALID
 
+if opt.image_model == "vit":
+    NUM_VALID = NUM_VALID // opt.batch_size * opt.batch_size
+    NUM_TRAIN = NUM_TRAIN // opt.batch_size * opt.batch_size
+    # print(NUM_VALID, NUM_TRAIN)
 
 loader_train = DataLoader(train_dataset, batch_size=opt.batch_size,
                           sampler=sampler.SubsetRandomSampler(range(NUM_TRAIN)))
-loader_val = DataLoader(train_dataset, batch_size=opt.batch_size,
-                        sampler=sampler.SubsetRandomSampler(range(NUM_TRAIN, NUM_ALL)))
+if NUM_VALID != 0:
+    loader_val = DataLoader(train_dataset, batch_size=opt.batch_size,
+                            sampler=sampler.SubsetRandomSampler(range(NUM_TRAIN, NUM_TRAIN+NUM_VALID)))
 
 
 print("-> Training model with {} epochs.".format(opt.epoch))
 print("-> Using", device)
 
 loss_list = []
+acc_train_list = []
 acc_list = []
 acc_max = 0
-time_str = datetime.datetime.now().strftime(r'%Y-%m-%d-%H-%M-%S')
-if opt.save_model:
-    os.makedirs(os.path.join("./output/", time_str))
 for e in range(opt.epoch):
     learning_rate_temp = optimizer.state_dict()['param_groups'][0]['lr']
     print('\tEpochs {}, lr = {} '.format(e+1, learning_rate_temp), end="")
@@ -156,17 +169,22 @@ for e in range(opt.epoch):
 
     loss_list.append(loss.item())
     print('loss = {:.4f}'.format(loss.item()))
+    acc_train_list.append(acc)
     print('\t\tAcc on data_train: {:.2f}%'.format(acc * 100))
 
-    acc_val = check_accuracy(loader_val, model, device)
-    acc_list.append(acc_val)
-    print('\t\tAcc on data_val: {:.2f}%'.format(acc_val * 100))
+    if NUM_VALID != 0:
+        acc_val = check_accuracy(opt, loader_val, model, device)
+        acc_list.append(acc_val)
+        print('\t\tAcc on data_val: {:.2f}%'.format(acc_val * 100))
     
     # torch.save(model.state_dict(), 'output/{}/Epoch-{}.pth'.format(time_str, e))
-    if acc_val > acc_max:
-        acc_max = acc_val
+        if acc_val > acc_max:
+            acc_max = acc_val
+            if opt.save_model:
+                torch.save(model.state_dict(), 'output/{}/Best-model.pth'.format(time_str))
+    else:
         if opt.save_model:
-            torch.save(model.state_dict(), 'output/{}/Best-model.pth'.format(time_str, e))
+            torch.save(model.state_dict(), 'output/{}/Best-model.pth'.format(time_str))
 
     if opt.scheduler:        
         scheduler.step()
@@ -174,7 +192,21 @@ for e in range(opt.epoch):
     end_time = time.time()
     print("\t\tUse time: {:.2f} sec".format(end_time-start_time))
 
+result = {}
+result['acc_train'] = acc_train_list
+if NUM_VALID != 0:
+    result["acc_valid"] = acc_list
+result["loss_train"] = loss_list
+with open(os.path.join(output_path, "train_results.json"), 'wt') as f:
+    json.dump(result, f, indent=4)
+    f.close()
+
 print("-> Train finished!")
-print("\tAcc on validation set:", acc_list)
-print("\tLoss on validation set:", loss_list)
-print("-> Best Acc: {:.2f}%".format(acc_max * 100))
+print("\tAcc on train set:", acc_train_list)
+if NUM_VALID != 0:
+    print("\tAcc on validation set:", acc_list)
+print("\tLoss on train set:", loss_list)
+if NUM_VALID != 0:
+    print("-> Best Acc: {:.2f}%".format(acc_max * 100))
+if opt.save_model:
+    print("-> Model parameters saved to " + './output/{}/Best-model.pth'.format(time_str))

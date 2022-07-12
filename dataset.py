@@ -1,3 +1,4 @@
+import os
 import torch
 from torch.utils.data import Dataset
 from transformers import BeitFeatureExtractor, BeitForImageClassification, BeitModel
@@ -88,6 +89,7 @@ def get_test_dataset(opt, tokenizer, transform=None):
             index.append(int(group[0]))
             label.append(get_label(group[1]))
         dataset = MyDataset(opt, index, label, False, tokenizer, transform)
+        f.close()
         return dataset
 
 
@@ -106,6 +108,7 @@ def get_train_dataset(opt, tokenizer, transform=None):
             s[get_label(group[1])] += 1
         print(s)
         dataset = MyDataset(opt, index, label, True, tokenizer, transform)
+        f.close()
         return dataset
 
     
@@ -120,3 +123,30 @@ def get_label(label:str):
         return NEGATIVE
     else:
         raise "Invalid label: {}".format(label)
+
+def get_label_name(label:int):
+    if label == NULL:
+        return "null"
+    elif label == POSITIVE:
+        return "positive"
+    elif label == NEUTRAL:
+        return "neutral"
+    elif label == NEGATIVE:
+        return "negative"
+    else:
+        raise "Invalid label: {}".format(label)
+
+def save_label_to_file(labels, path):
+    with open(test_label_path, 'r', encoding='utf-8') as f:
+        lines = f.readlines()[1:]
+        index = []
+        label = []
+        for line in lines:
+            group = line.rstrip('\n').split(",")
+            index.append(int(group[0]))
+        f.close()
+
+    with open(path, 'w') as f:
+        f.write("guid,tag\n")
+        for i, idx in enumerate(index):
+            f.write("{},{}\n".format(idx, get_label_name(labels[i])))    
