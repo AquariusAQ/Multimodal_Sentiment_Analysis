@@ -53,6 +53,8 @@ opt = parser.parse_args()
 print(opt)
 
 # save opt
+if not os.path.exists("./output"):
+    os.makedirs("./output")
 time_str = datetime.datetime.now().strftime(r'%Y-%m-%d-%H-%M-%S')
 if opt.save_model:
     output_path = os.path.join("./output/", time_str)
