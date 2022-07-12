@@ -67,7 +67,7 @@ pip install -r requirements.txt
 
 ## Pretrained Model Required
 
-需要从 🤗Huggingface 下载模型需要的预训练模型，并保存到 pre-trained-model 文件夹下，例如：
+需要从 🤗Huggingface 下载模型需要的预训练模型，并保存到 pre-trained-model 文件夹下，如：
 
 - [bert-medium](https://huggingface.co/prajjwal1/bert-medium)
 - [bert-base-uncased](https://huggingface.co/bert-base-uncased)
@@ -104,40 +104,56 @@ pip install -r requirements.txt
 
 ## Quick Start
 
-可以通过以下参数对模型进行训练（BERT-medium + BEiT-base），并保存结果
+可以通过以下命令对模型进行训练（BERT-base-uncased + BEiT-base），并保存结果
 
 ```shell
 python .\train.py 
-    --epoch 10 --lr 2e-5 --batch_size 16 --l2 1e-6 
-    --scheduler --lr_step 3 --lr_gamma 0.1 
-    --model_path .\pre-trained-model\bert-medium\ 
-    --image_model beit 
-    --image_model_path .\pre-trained-model\beit-base-patch16-224-pt22k-ft22k\ 
-    --save_model --cuda 
+  --epoch 10 --lr 2e-5 --batch_size 8 --l2 1e-6 
+  --scheduler --lr_step 3 --lr_gamma 0.1 
+  --model_path .\pre-trained-model\bert-base-uncased\ 
+  --image_model beit 
+  --image_model_path .\pre-trained-model\beit-base-patch16-224-pt22k-ft22k\ 
+  --save_model --cuda
+
 ```
 
 ## Parameter Setting
 
+训练主要有以下参数：
+
+- valid_ratio：在训练集中划分验证集的比例
+- mask_image：是否 mask 图片（即输入空白图片）
+- mask_text：是否 mask 文本（即输入空白文本）
+- model_path：NLP 预训练模型的路径
+- image_model：图像特征提取模型类型，可选的包括 vgg, resnet18, resnet50, vit, beit 等
+- image_model_path：如果使用 beit，其预训练模型的路径
+- epoch：训练轮数
+- batch_size：批大小
+- lr：学习率
+- scheduler：是否使用学习率计划（StepLR）
+- save_model：是否保存模型参数等训练结果
+- size：图像 reshape 后的大小
+- max_length：文本长度
+- cuda：是否使用 GPU 训练
+
 ## Run pipeline
-1. Entering the large-scale directory and download 6 big-scale datasets from the repository of [LINKX](https://github.com/CUAI/Non-Homophily-Large-Scale). Notice, you should rename the datasets and place them in the right directory.
-```python
-cd large-scale
+1. 可以通过以下命令加载训练好的模型，输出测试集的预测结果
+
+```shell
+python .\test.py 
+  --save_model_path ./output/2022-07-12-11-43-25 
+  --batch_size 8 
+  --cuda
 ```
 
-2. You can run any models implemented in 'models.py'. For examples, you can run our model on 'genius' dataset by the script:
-```python
-python main.py --dataset genius --sub_dataset None --method mlpnorm
-```
-And you can run other models, such as 
-```python
-python main.py --dataset genius --sub_dataset None --method acmgcn
-```
-For more experiments running details, you can ref the running sh in the 'experiments/' directory.
-
-3. You can reproduce the experimental results of our method by running the scripts:
-```python
-bash run_glognn_sota_reproduce_big.sh
-bash run_glognn++_sota_reproduce_big.sh
+2. 可以通过以下命令使用某一个图片及文本做预测
+  
+```shell
+python .\test.py 
+  --pipeline 
+  --save_model_path ./output/2022-07-12-11-43-25 
+  --image_path .\datasets\data\1.jpg 
+  --text_path .\datasets\data\1.txt 
 ```
 
 ## Attribution
